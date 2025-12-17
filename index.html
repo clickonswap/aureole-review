@@ -1458,22 +1458,37 @@ async function initFromConfig() {
     document.title = titleText;
     pageTitle.textContent = titleText;
 
-    const base = cfg.shotBasePath || "media/";
-    const cfgShots = Array.isArray(cfg.shots) ? cfg.shots : [];
-    shots = cfgShots.map(s => {
-      const file = s.file || "";
-      const url  = s.url || (base + file);
-      const name = s.name || file || "Shot";
-      return {
-        name,
-        fileName: file,
-        url,
-        frameStore: {},
-        lastFrameIndex: null,
-        duration: null,
-        cloudLoaded: false
-      };
-    });
+const base = (cfg.shotBasePath ?? "").trim(); // keep empty if not provided
+const cfgShots = Array.isArray(cfg.shots) ? cfg.shots : [];
+
+const isAbsUrl = (v) => /^https?:\/\//i.test((v || "").trim());
+
+shots = cfgShots.map(s => {
+  const file = (s.file || "").trim();
+  const urlFromConfig = (s.url || "").trim();
+
+  // Priority:
+  // 1) if s.url is absolute -> use it
+  // 2) else if s.file is absolute (Firebase) -> use it
+  // 3) else use base + file (local relative)
+  const url =
+    (isAbsUrl(urlFromConfig) && urlFromConfig) ||
+    (isAbsUrl(file) && file) ||
+    ((base || "media/") + file);
+
+  const name = s.name || file || "Shot";
+
+  return {
+    name,
+    fileName: file,
+    url,
+    frameStore: {},
+    lastFrameIndex: null,
+    duration: null,
+    cloudLoaded: false
+  };
+});
+
 
     setVendorUI(project);
     updateShotBinUI();
