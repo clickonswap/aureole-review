@@ -1,0 +1,27 @@
+{
+  "title": "Chudail – Seq03 Review",
+  "password": "",
+
+  "shotBasePath": "media/",
+  "shots": [
+    {
+      "name": "CHU_Seq03_Shot010",
+      "file": "https://firebasestorage.googleapis.com/v0/b/aureolereviewdb.firebasestorage.app/o/CHU_Seq03_Shot010.mp4?alt=media&token=89702c48-35f4-44bc-9d4e-fb1e88c338a6"
+    },
+    {
+      "name": "showreel_test",
+      "file": "https://firebasestorage.googleapis.com/v0/b/aureolereviewdb.firebasestorage.app/o/showreel_test.mp4?alt=media&token=8eccaac7-cb14-4f4c-96c3-895cbf7651b6"
+    }
+  ],
+
+  "vendors": {
+    "vendor001": {
+      "name": "Vendor 001",
+      "mode": "review",
+      "watermark": "AUREOLE VFX – Vendor001",
+      "uploadUrl": "https://drive.google.com" ,
+      "token": "" ,
+      "password": ""
+    }
+  }
+}

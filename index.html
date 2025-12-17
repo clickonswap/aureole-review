@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aureole Vendor Review</title>
+  <style>
+    body {
+      background:#111; color:#eee; margin:0; padding:16px;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    h1 { margin-bottom:8px; font-size:20px; }
+
+    .panel {
+      background:#1b1b1b;
+      padding:10px 14px;
+      margin-bottom:12px;
+      border-radius:8px;
+      max-width:960px;
+      margin-left:auto;
+      margin-right:auto;
+    }
+
+    #playerWrapper {
+      position:relative;
+      width:960px;
+      max-width:100%;
+      margin:10px auto;
+    }
+    video {
+      width:100%;
+      height:auto;
+      background:#000;
+      display:block;
+      border-radius:6px;
+    }
+    #drawCanvas {
+      position:absolute;
+      left:0; top:0;
+      width:100%; height:100%;
+      pointer-events:auto;
+      border-radius:6px;
+    }
+    #hud {
+      position:absolute;
+      left:8px; bottom:8px;
+      padding:3px 8px;
+      font-size:12px;
+      background:rgba(0,0,0,0.6);
+      border-radius:4px;
+      pointer-events:none;
+    }
+    #shotOverlay {
+      position:absolute;
+      right:8px; bottom:8px;
+      padding:3px 8px;
+      font-size:12px;
+      max-width:40%;
+      background:rgba(0,0,0,0.6);
+      border-radius:4px;
+      pointer-events:none;
+      text-align:right;
+    }
+    #shotHud {
+      position:absolute;
+      top:8px; left:50%;
+      transform:translateX(-50%);
+      padding:3px 10px;
+      font-size:12px;
+      background:rgba(0,0,0,0.6);
+      border-radius:4px;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+
+    /* Watermark overlay (visual only) */
+    #wmOverlay {
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%) rotate(-25deg);
+      font-size:32px;
+      font-weight:700;
+      color:rgba(255,255,255,0.08);
+      pointer-events:none;
+      white-space:nowrap;
+      text-transform:uppercase;
+    }
+
+    button {
+      background:#00bcd4;
+      border:none;
+      padding:6px 10px;
+      border-radius:6px;
+      font-size:12px;
+      font-weight:600;
+      cursor:pointer;
+      margin-right:4px;
+    }
+    button.secondary { background:#333; color:#eee; }
+    button.danger { background:#aa3333; color:#fff; }
+    button:disabled { opacity:0.4; cursor:default; }
+
+    .tools {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+      margin-top:4px;
+      font-size:12px;
+    }
+    input[type=color] {
+      width:32px; height:26px; border:none; padding:0;
+    }
+    input[type=range] { width:120px; }
+    input[type=text] {
+      background:#222; border:1px solid #333; border-radius:4px;
+      color:#eee; padding:4px 8px; font-size:13px;
+      min-width:260px;
+    }
+    small { opacity:0.7; font-size:11px; }
+
+    .play-controls {
+      margin-top:6px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+    }
+
+    .timeline {
+      margin-top:4px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      max-width:960px;
+      margin-left:auto;
+      margin-right:auto;
+    }
+    .timeline-slider-wrapper {
+      position:relative;
+      flex:1;
+    }
+    #timelineSlider {
+      width:100%;
+    }
+    #markerTrack {
+      position:absolute;
+      left:0; bottom:0;
+      width:100%; height:6px;
+      pointer-events:none;
+    }
+    .marker-dot {
+      position:absolute;
+      top:50%;
+      width:3px; height:8px;
+      background:#4cff92;
+      transform:translate(-50%,-50%);
+      border-radius:2px;
+    }
+
+    .shot-bin-title, .shot-timeline-title {
+      font-size:13px;
+      font-weight:600;
+      margin-top:2px;
+    }
+    #shotBin {
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
+      margin-top:4px;
+      font-size:12px;
+    }
+    .shot-bin-item {
+      display:flex;
+      align-items:center;
+      gap:4px;
+      padding:4px 6px;
+      border-radius:4px;
+      background:#222;
+      cursor:pointer;
+      max-width:220px;
+    }
+    .shot-bin-item.active {
+      background:#00bcd4;
+      color:#000;
+    }
+    .shot-bin-name {
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    #shotTimeline {
+      margin-top:4px;
+      display:flex;
+      align-items:center;
+      gap:4px;
+      overflow-x:auto;
+      padding:4px 2px;
+      border-radius:4px;
+      background:#181818;
+      font-size:11px;
+    }
+    .shot-block {
+      flex:0 0 auto;
+      padding:4px 10px;
+      border-radius:4px;
+      background:#333;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .shot-block.active {
+      background:#00bcd4;
+      color:#000;
+    }
+
+    .slider-group {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-top:6px;
+      font-size:12px;
+    }
+    .slider-group input[type=range] {
+      width:180px;
+    }
+
+    #annotInfo {
+      margin-left:8px;
+      font-size:12px;
+      opacity:0.8;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle">Aureole Vendor Review</h1>
+
+<div class="panel">
+  <span id="projectLabel" style="font-size:14px; opacity:0.85;">Loading project…</span>
+  <button id="playlistBtn" class="secondary" style="margin-left:8px;">Playlist: On</button>
+  <span id="vendorInfoLabel" style="margin-left:12px; font-size:12px; opacity:0.7;"></span>
+</div>
+
+<div id="playerWrapper">
+  <video id="video"></video>
+  <canvas id="drawCanvas"></canvas>
+  <div id="hud">TC: 00:00:00:00 | Frame: 0</div>
+  <div id="shotOverlay"></div>
+  <div id="shotHud">Loading shots…</div>
+  <div id="wmOverlay"></div>
+</div>
+
+<div class="panel">
+  <div class="shot-bin-title">Shot Bin</div>
+  <div id="shotBin"></div>
+
+  <div class="shot-timeline-title" style="margin-top:8px;">Shot Timeline</div>
+  <div id="shotTimeline"></div>
+</div>
+
+<div class="panel">
+  <div class="play-controls">
+    <button id="playBtn">Play</button>
+    <button id="pauseBtn" class="secondary">Pause</button>
+    <button id="prevFrameBtn" class="secondary">⟸ Prev Frame</button>
+    <button id="nextFrameBtn" class="secondary">Next Frame ⟹</button>
+    <button id="fsBtn" class="secondary">Fullscreen</button>
+    <small>Space = Play/Pause • ← / → = frame-by-frame (24 fps) • 1/2/3 = Red/Yellow/Blue</small>
+  </div>
+
+  <div class="timeline">
+    <span id="curTimeLabel">00:00:00:00</span>
+    <div class="timeline-slider-wrapper">
+      <input type="range" id="timelineSlider" min="0" max="1000" value="0" />
+      <div id="markerTrack"></div>
+    </div>
+    <span id="durTimeLabel">00:00:00:00</span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="tools">
+    <span>Pen:</span>
+    <input type="color" id="penColor" value="#ff0000" />
+    <span>Size:</span>
+    <input type="range" id="penSize" min="1" max="20" value="4" />
+    <span id="pxLabel">4px</span>
+
+    <button id="colorRedBtn" class="secondary" style="background:#ff4d4d;">R</button>
+    <button id="colorYellowBtn" class="secondary" style="background:#ffd800; color:#000;">Y</button>
+    <button id="colorBlueBtn" class="secondary" style="background:#3399ff;">B</button>
+
+    <button id="clearFrameBtn" class="secondary">Clear Current Frame</button>
+    <button id="clearAllFramesBtn" class="secondary">Clear All Frames (Shot)</button>
+
+    <button id="prevAnnotBtn" class="secondary">◀ Prev Annot</button>
+    <button id="nextAnnotBtn" class="secondary">Next Annot ▶</button>
+
+    <button id="saveCurrentBtn">Export Current Frame</button>
+    <button id="saveAllBtn" class="secondary">Export All Annotated</button>
+
+    <button id="uploadBtn" class="secondary">Upload Files</button>
+
+    <span id="annotInfo">Annotated frames: 0</span>
+  </div>
+
+  <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+    <span>Shot ID / Notes:</span>
+    <input type="text" id="shotId" placeholder="e.g. CHU_Seq03_S010 – Eye edge fix" />
+  </div>
+
+  <div class="slider-group">
+    <label>Annotations wipe:</label>
+    <input type="range" id="wipeSlider" min="0" max="100" value="100" />
+    <span id="wipeLabel">100%</span>
+    <small>(0% = hide all annotations, 100% = show all)</small>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  collection,
+  setDoc,
+  getDocs,
+  deleteDoc,
+  onSnapshot 	
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+/* ===== Firebase config (your project) ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAM0oS1kKzkwhcXLDWyvDLxet5q0iY0kQc",
+  authDomain: "aureolereviewdb.firebaseapp.com",
+  projectId: "aureolereviewdb",
+  storageBucket: "aureolereviewdb.appspot.com",
+  messagingSenderId: "363694689574",
+  appId: "1:363694689574:web:e65ff70a6351c00cfa05e7",
+  measurementId: "G-Y0ZKKWP4DC"
+};
+
+let db = null;
+let firebaseReady = false;
+
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  firebaseReady = true;
+  console.log("✅ Firebase initialized");
+} catch (err) {
+  console.error("🔥 Firebase init failed:", err);
+}
+
+/* ===== Core constants & DOM refs ===== */
+const FPS = 24;
+const DEFAULT_PROJECT = "chudail";
+
+const COLOR_RED    = "#ff0000";
+const COLOR_YELLOW = "#ffff00";
+const COLOR_BLUE   = "#00aaff";
+
+const playerWrapper  = document.getElementById("playerWrapper");
+const video          = document.getElementById("video");
+const displayCanvas  = document.getElementById("drawCanvas");
+const displayCtx     = displayCanvas.getContext("2d");
+const hud            = document.getElementById("hud");
+const shotOverlay    = document.getElementById("shotOverlay");
+const shotHud        = document.getElementById("shotHud");
+const wmOverlay      = document.getElementById("wmOverlay");
+const pageTitle      = document.getElementById("pageTitle");
+const projectLabel   = document.getElementById("projectLabel");
+const vendorInfoLabel= document.getElementById("vendorInfoLabel");
+
+const penColor       = document.getElementById("penColor");
+const penSize        = document.getElementById("penSize");
+const pxLabel        = document.getElementById("pxLabel");
+const colorRedBtn    = document.getElementById("colorRedBtn");
+const colorYellowBtn = document.getElementById("colorYellowBtn");
+const colorBlueBtn   = document.getElementById("colorBlueBtn");
+const clearFrameBtn  = document.getElementById("clearFrameBtn");
+const clearAllFramesBtn = document.getElementById("clearAllFramesBtn");
+
+const prevAnnotBtn   = document.getElementById("prevAnnotBtn");
+const nextAnnotBtn   = document.getElementById("nextAnnotBtn");
+const saveCurrentBtn = document.getElementById("saveCurrentBtn");
+const saveAllBtn     = document.getElementById("saveAllBtn");
+const uploadBtn      = document.getElementById("uploadBtn");
+const shotIdInput    = document.getElementById("shotId");
+const wipeSlider     = document.getElementById("wipeSlider");
+const wipeLabel      = document.getElementById("wipeLabel");
+const annotInfo      = document.getElementById("annotInfo");
+
+const playBtn        = document.getElementById("playBtn");
+const pauseBtn       = document.getElementById("pauseBtn");
+const prevFrameBtn   = document.getElementById("prevFrameBtn");
+const nextFrameBtn   = document.getElementById("nextFrameBtn");
+const fsBtn          = document.getElementById("fsBtn");
+const timelineSlider = document.getElementById("timelineSlider");
+const curTimeLabel   = document.getElementById("curTimeLabel");
+const durTimeLabel   = document.getElementById("durTimeLabel");
+const markerTrack    = document.getElementById("markerTrack");
+
+const shotBinEl      = document.getElementById("shotBin");
+const shotTimelineEl = document.getElementById("shotTimeline");
+const playlistBtn    = document.getElementById("playlistBtn");
+
+let shots = [];
+let activeShotIndex = -1;
+let playlistEnabled = true;
+
+let drawing = false;
+let lastX = 0, lastY = 0;
+let wipeRatio = 1;
+
+let annCanvas = document.createElement("canvas");
+let annCtx = annCanvas.getContext("2d");
+
+let currentVendor = null;   // { id, name, mode, watermark, uploadUrl }
+let currentProjectName = null;
+
+let undoStack = [];
+let redoStack = [];
+const MAX_HISTORY = 25;
+
+/* ========== Helper functions ========== */
+function canvasToBlob(canvas) {
+  return new Promise(resolve => canvas.toBlob(b => resolve(b), "image/png"));
+}
+function fallbackDownloadCanvas(canvas, filename) {
+  const url = canvas.toDataURL("image/png");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+}
+async function saveCanvasWithPicker(canvas, filename) {
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description:"PNG Image", accept:{"image/png":[".png"]} }]
+      });
+      const writable = await handle.createWritable();
+      const blob = await canvasToBlob(canvas);
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (e) {
+      console.warn("showSaveFilePicker failed, fallback:", e);
+    }
+  }
+  fallbackDownloadCanvas(canvas, filename);
+}
+async function saveMultipleCanvasesToFolder(items) {
+  if (window.showDirectoryPicker) {
+    try {
+      const dir = await window.showDirectoryPicker();
+      for (const item of items) {
+        const handle = await dir.getFileHandle(item.filename, {create:true});
+        const writable = await handle.createWritable();
+        const blob = await canvasToBlob(item.canvas);
+        await writable.write(blob);
+        await writable.close();
+      }
+      return;
+    } catch (e) {
+      console.warn("showDirectoryPicker failed, fallback:", e);
+    }
+  }
+  for (const item of items) {
+    fallbackDownloadCanvas(item.canvas, item.filename);
+  }
+}
+function formatTimecode(sec) {
+  if (!isFinite(sec)) sec = 0;
+  const totalFrames = Math.round(sec * FPS);
+  const f = totalFrames % FPS;
+  let totalSeconds = Math.floor(totalFrames / FPS);
+  const s = totalSeconds % 60;
+  totalSeconds = Math.floor(totalFrames / 60);
+  const m = totalSeconds % 60;
+  const h = Math.floor(totalSeconds / 60);
+  const pad = (n,d=2) => n.toString().padStart(d,"0");
+  return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
+}
+
+/* ===== Vendor UI + watermark ===== */
+function setVendorUI(projectName) {
+  if (currentVendor) {
+    const vName = currentVendor.name || currentVendor.id;
+    vendorInfoLabel.textContent = `Vendor: ${vName} • Mode: ${currentVendor.mode}`;
+    wmOverlay.textContent = currentVendor.watermark ||
+      `AUREOLE VFX – ${vName}`;
+  } else {
+    vendorInfoLabel.textContent = "";
+    wmOverlay.textContent = "AUREOLE VFX – INTERNAL REVIEW";
+  }
+  projectLabel.textContent = `Project: ${projectName}`;
+  applyVendorPermissions();
+}
+function applyVendorPermissions() {
+  const mode = currentVendor && currentVendor.mode ? currentVendor.mode : "review";
+  const canAnnotate = (mode === "review");
+
+  const annotControls = [
+    penColor, penSize,
+    colorRedBtn, colorYellowBtn, colorBlueBtn,
+    clearFrameBtn, clearAllFramesBtn,
+    prevAnnotBtn, nextAnnotBtn,
+    saveCurrentBtn, saveAllBtn,
+    wipeSlider
+  ];
+  annotControls.forEach(el => el.disabled = !canAnnotate);
+  displayCanvas.style.pointerEvents = canAnnotate ? "auto" : "none";
+
+  if (currentVendor && currentVendor.uploadUrl) {
+    uploadBtn.style.display = "";
+    uploadBtn.disabled = false;
+  } else {
+    uploadBtn.style.display = "none";
+  }
+}
+
+/* ===== Firestore helpers (cloud sync) ===== */
+function safeId(str) {
+  return (str || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+function getShotDocId(shot) {
+  const project = safeId(currentProjectName || "project");
+  const vendor  = safeId(currentVendor && currentVendor.id ? currentVendor.id : "noVendor");
+  const shotId  = safeId(shot.name || shot.fileName || "shot");
+  return `${project}__${vendor}__${shotId}`;
+}
+
+async function syncFrameToCloud(shot, frameIndex) {
+  if (!firebaseReady || !currentVendor) return;
+  const data = shot.frameStore[frameIndex];
+  if (!data) return;
+
+  const c = document.createElement("canvas");
+  c.width = data.width;
+  c.height = data.height;
+  const cctx = c.getContext("2d");
+  cctx.putImageData(data,0,0);
+  const png = c.toDataURL("image/png");
+
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const frameDocRef = doc(collection(baseDocRef, "frames"), String(frameIndex));
+  await setDoc(frameDocRef, {
+    frameIndex,
+    png,
+    w: data.width,
+    h: data.height,
+    updatedAt: Date.now()
+  }).catch(err => console.error("syncFrameToCloud error:", err));
+}
+
+async function clearFrameFromCloud(shot, frameIndex) {
+  if (!firebaseReady || !currentVendor) return;
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const frameDocRef = doc(collection(baseDocRef, "frames"), String(frameIndex));
+  await deleteDoc(frameDocRef).catch(()=>{});
+}
+
+async function clearAllFramesFromCloud(shot) {
+  if (!firebaseReady || !currentVendor) return;
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const framesCol  = collection(baseDocRef, "frames");
+  const snap = await getDocs(framesCol).catch(err => {
+    console.error("clearAllFramesFromCloud getDocs error:", err);
+    return null;
+  });
+  if (!snap) return;
+  const tasks = [];
+  snap.forEach(d => tasks.push(deleteDoc(d.ref)));
+  await Promise.all(tasks).catch(()=>{});
+}
+
+async function loadShotFromCloud(shot) {
+  if (!firebaseReady || !currentVendor) return;
+
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const framesCol  = collection(baseDocRef, "frames");
+
+  const snap = await getDocs(framesCol).catch(err => {
+    console.error("loadShotFromCloud getDocs error:", err);
+    return null;
+  });
+
+  if (!snap) return;
+  const promises = [];
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    const frameIndex = Number(data.frameIndex);
+    const png = data.png;
+    if (!png || !Number.isFinite(frameIndex)) return;
+
+    const img = new Image();
+    img.src = png;
+    const p = new Promise(resolve => {
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = img.width;
+          c.height = img.height;
+          const cctx = c.getContext("2d");
+          cctx.drawImage(img,0,0);
+          const imgData = cctx.getImageData(0,0,c.width,c.height);
+          shot.frameStore[frameIndex] = imgData;
+        } catch (e) {
+          console.error("loadShotFromCloud decode error:", e);
+        }
+        resolve();
+      };
+      img.onerror = () => resolve();
+    });
+    promises.push(p);
+  });
+  await Promise.all(promises);
+  if (shot === getActiveShot()) {
+    const f = getCurrentFrameIndex();
+    loadAnnotationsForFrame(f);
+    refreshAnnotationHUD();
+  }
+  console.log("✅ Loaded annotations from cloud for shot:", shot.name);
+}
+
+// ===== Cloud load for entire shot (initial fetch) =====
+async function loadShotFromCloud(shot) {
+  if (!firebaseReady || !currentVendor) return;
+
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const framesCol  = collection(baseDocRef, "frames");
+
+  const snap = await getDocs(framesCol).catch(err => {
+    console.error("loadShotFromCloud getDocs error:", err);
+    return null;
+  });
+  if (!snap) return;
+
+  const jobs = [];
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    const frameIndex = Number(data.frameIndex);
+    const png = data.png;
+    if (!png || !Number.isFinite(frameIndex)) return;
+
+    const img = new Image();
+    img.src = png;
+    const p = new Promise(resolve => {
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width  = img.width;
+          c.height = img.height;
+          const cctx = c.getContext("2d");
+          cctx.drawImage(img, 0, 0);
+          const imgData = cctx.getImageData(0, 0, c.width, c.height);
+          shot.frameStore[frameIndex] = imgData;
+        } catch (e) {
+          console.error("loadShotFromCloud decode error:", e);
+        }
+        resolve();
+      };
+      img.onerror = () => resolve();
+    });
+    jobs.push(p);
+  });
+
+  await Promise.all(jobs);
+  console.log("✅ Loaded annotations from cloud for shot:", shot.name);
+}
+
+// ===== LIVE realtime listener for this shot =====
+function attachRealtimeListenerToShot(shot) {
+  if (!firebaseReady || !currentVendor) return;
+  if (shot.unsubscribeRealtime) return; // already attached once
+
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const framesCol  = collection(baseDocRef, "frames");
+
+  shot.unsubscribeRealtime = onSnapshot(framesCol, (snap) => {
+    snap.docChanges().forEach(change => {
+      const data = change.doc.data();
+      const frameIndex = Number(data.frameIndex);
+      if (!Number.isFinite(frameIndex)) return;
+
+      if (change.type === "removed") {
+        // Someone cleared this frame remotely
+        delete shot.frameStore[frameIndex];
+
+        if (shot === getActiveShot()) {
+          if (frameIndex === getCurrentFrameIndex()) {
+            loadAnnotationsForFrame(frameIndex);
+          }
+          refreshAnnotationHUD();
+        }
+      } else {
+        // Added / modified frame – decode PNG back into ImageData
+        const png = data.png;
+        if (!png) return;
+
+        const img = new Image();
+        img.src = png;
+        img.onload = () => {
+          const c = document.createElement("canvas");
+          c.width  = img.width;
+          c.height = img.height;
+          const cctx = c.getContext("2d");
+          cctx.drawImage(img, 0, 0);
+          const imgData = cctx.getImageData(0, 0, c.width, c.height);
+          shot.frameStore[frameIndex] = imgData;
+
+          if (shot === getActiveShot()) {
+            if (frameIndex === getCurrentFrameIndex()) {
+              loadAnnotationsForFrame(frameIndex);
+            }
+            refreshAnnotationHUD();
+          }
+        };
+      }
+    });
+  });
+}
+
+// ===== SWITCH SHOT (now also starts live mode) =====
+async function switchShot(index, autoPlay = false) {
+  const oldShot = getActiveShot();
+  if (oldShot && oldShot.lastFrameIndex != null) {
+    // Save whatever you were drawing on old shot/frame
+    saveAnnotationsForFrame(oldShot.lastFrameIndex);
+  }
+
+  activeShotIndex = index;
+  const shot = getActiveShot();
+  if (!shot) return;
+
+  // First time we hit this shot, grab existing annotations from cloud
+  if (!shot.cloudLoaded) {
+    shot.cloudLoaded = true;
+    loadShotFromCloud(shot); // async, no need to await
+  }
+
+  // 🔴 turn on realtime sync for this shot
+  attachRealtimeListenerToShot(shot);
+
+  video.pause();
+  video.src = shot.url;
+  video.currentTime = 0;
+  shotIdInput.value = shot.name;
+
+  updateShotBinUI();
+  updateShotTimelineUI();
+  refreshAnnotationHUD();
+
+  if (autoPlay) {
+    video.play().catch(() => {});
+  }
+}
+
+/* ===== Shot helpers & UI ===== */
+function getActiveShot() {
+  if (activeShotIndex < 0 || activeShotIndex >= shots.length) return null;
+  return shots[activeShotIndex];
+}
+function updateShotBinUI() {
+  shotBinEl.innerHTML = "";
+  shots.forEach((shot, i) => {
+    const div = document.createElement("div");
+    div.className = "shot-bin-item" + (i === activeShotIndex ? " active" : "");
+    const span = document.createElement("span");
+    span.className = "shot-bin-name";
+    span.textContent = shot.name;
+    span.title = shot.fileName || shot.name;
+    div.appendChild(span);
+    div.addEventListener("click", () => switchShot(i));
+    shotBinEl.appendChild(div);
+  });
+}
+function updateShotTimelineUI() {
+  shotTimelineEl.innerHTML = "";
+  shots.forEach((shot,i) => {
+    const div = document.createElement("div");
+    div.className = "shot-block" + (i === activeShotIndex ? " active" : "");
+    div.textContent = `${i+1}. ${shot.name}`;
+    div.title = shot.fileName || shot.name;
+    div.addEventListener("click", () => switchShot(i));
+    shotTimelineEl.appendChild(div);
+  });
+}
+function refreshAnnotationHUD() {
+  const shot = getActiveShot();
+  let count = 0;
+  if (shot) count = Object.keys(shot.frameStore).length;
+  annotInfo.textContent = `Annotated frames: ${count}`;
+  if (!shot) shotHud.textContent = "No shots loaded";
+  else shotHud.textContent = `Shot ${activeShotIndex+1} / ${shots.length} • Annotated: ${count}`;
+  refreshTimelineMarkers();
+}
+function refreshTimelineMarkers() {
+  markerTrack.innerHTML = "";
+  const shot = getActiveShot();
+  if (!shot || !isFinite(video.duration) || video.duration<=0) return;
+  const frames = Object.keys(shot.frameStore).map(Number).sort((a,b)=>a-b);
+  frames.forEach(f => {
+    const secs = f / FPS;
+    const ratio = secs / video.duration;
+    const dot = document.createElement("div");
+    dot.className = "marker-dot";
+    dot.style.left = (ratio*100) + "%";
+    markerTrack.appendChild(dot);
+  });
+}
+
+/* ===== Switching shots ===== */
+// ===== Cloud load for entire shot (initial fetch) =====
+async function loadShotFromCloud(shot) {
+  if (!firebaseReady || !currentVendor) return;
+
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const framesCol  = collection(baseDocRef, "frames");
+
+  const snap = await getDocs(framesCol).catch(err => {
+    console.error("loadShotFromCloud getDocs error:", err);
+    return null;
+  });
+  if (!snap) return;
+
+  const jobs = [];
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    const frameIndex = Number(data.frameIndex);
+    const png = data.png;
+    if (!png || !Number.isFinite(frameIndex)) return;
+
+    const img = new Image();
+    img.src = png;
+    const p = new Promise(resolve => {
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width  = img.width;
+          c.height = img.height;
+          const cctx = c.getContext("2d");
+          cctx.drawImage(img, 0, 0);
+          const imgData = cctx.getImageData(0, 0, c.width, c.height);
+          shot.frameStore[frameIndex] = imgData;
+        } catch (e) {
+          console.error("loadShotFromCloud decode error:", e);
+        }
+        resolve();
+      };
+      img.onerror = () => resolve();
+    });
+    jobs.push(p);
+  });
+
+  await Promise.all(jobs);
+  console.log("✅ Loaded annotations from cloud for shot:", shot.name);
+}
+
+// ===== LIVE realtime listener for this shot =====
+function attachRealtimeListenerToShot(shot) {
+  if (!firebaseReady || !currentVendor) return;
+  if (shot.unsubscribeRealtime) return; // already attached once
+
+  const baseDocRef = doc(db, "annotations", getShotDocId(shot));
+  const framesCol  = collection(baseDocRef, "frames");
+
+  shot.unsubscribeRealtime = onSnapshot(framesCol, (snap) => {
+    snap.docChanges().forEach(change => {
+      const data = change.doc.data();
+      const frameIndex = Number(data.frameIndex);
+      if (!Number.isFinite(frameIndex)) return;
+
+      if (change.type === "removed") {
+        // Someone cleared this frame remotely
+        delete shot.frameStore[frameIndex];
+
+        if (shot === getActiveShot()) {
+          if (frameIndex === getCurrentFrameIndex()) {
+            loadAnnotationsForFrame(frameIndex);
+          }
+          refreshAnnotationHUD();
+        }
+      } else {
+        // Added / modified frame – decode PNG back into ImageData
+        const png = data.png;
+        if (!png) return;
+
+        const img = new Image();
+        img.src = png;
+        img.onload = () => {
+          const c = document.createElement("canvas");
+          c.width  = img.width;
+          c.height = img.height;
+          const cctx = c.getContext("2d");
+          cctx.drawImage(img, 0, 0);
+          const imgData = cctx.getImageData(0, 0, c.width, c.height);
+          shot.frameStore[frameIndex] = imgData;
+
+          if (shot === getActiveShot()) {
+            if (frameIndex === getCurrentFrameIndex()) {
+              loadAnnotationsForFrame(frameIndex);
+            }
+            refreshAnnotationHUD();
+          }
+        };
+      }
+    });
+  });
+}
+
+// ===== SWITCH SHOT (now also starts live mode) =====
+async function switchShot(index, autoPlay = false) {
+  const oldShot = getActiveShot();
+  if (oldShot && oldShot.lastFrameIndex != null) {
+    // Save whatever you were drawing on old shot/frame
+    saveAnnotationsForFrame(oldShot.lastFrameIndex);
+  }
+
+  activeShotIndex = index;
+  const shot = getActiveShot();
+  if (!shot) return;
+
+  // First time we hit this shot, grab existing annotations from cloud
+  if (!shot.cloudLoaded) {
+    shot.cloudLoaded = true;
+    loadShotFromCloud(shot); // async, no need to await
+  }
+
+  // 🔴 turn on realtime sync for this shot
+  attachRealtimeListenerToShot(shot);
+
+  video.pause();
+  video.src = shot.url;
+  video.currentTime = 0;
+  shotIdInput.value = shot.name;
+
+  updateShotBinUI();
+  updateShotTimelineUI();
+  refreshAnnotationHUD();
+
+  if (autoPlay) {
+    video.play().catch(() => {});
+  }
+}
+
+/* ===== Time & HUD ===== */
+function updateHUD() {
+  const t = video.currentTime || 0;
+  const frame = Math.round(t * FPS);
+  hud.textContent = `TC: ${formatTimecode(t)} | Frame: ${frame}`;
+  curTimeLabel.textContent = formatTimecode(t);
+  const id = shotIdInput.value.trim();
+  shotOverlay.textContent = id;
+}
+function getCurrentFrameIndex() {
+  return Math.round((video.currentTime || 0) * FPS);
+}
+
+/* ===== Annotations per frame (local + cloud) ===== */
+function saveAnnotationsForFrame(frameIndex) {
+  const shot = getActiveShot();
+  if (!shot) return;
+  try {
+    const data = annCtx.getImageData(0,0,annCanvas.width,annCanvas.height);
+    let hasAlpha = false;
+    for (let i=3; i<data.data.length; i+=4) {
+      if (data.data[i] !== 0) { hasAlpha = true; break; }
+    }
+    if (hasAlpha) {
+      shot.frameStore[frameIndex] = data;
+      syncFrameToCloud(shot, frameIndex);
+    } else {
+      delete shot.frameStore[frameIndex];
+      clearFrameFromCloud(shot, frameIndex);
+    }
+  } catch(e) {
+    console.warn("saveAnnotationsForFrame failed:", e);
+  }
+  refreshAnnotationHUD();
+}
+function loadAnnotationsForFrame(frameIndex) {
+  const shot = getActiveShot();
+  annCtx.clearRect(0,0,annCanvas.width,annCanvas.height);
+  if (!shot) { recomposite(); return; }
+  const data = shot.frameStore[frameIndex];
+  if (data) annCtx.putImageData(data,0,0);
+  recomposite();
+}
+function getSortedAnnotatedFrames() {
+  const shot = getActiveShot();
+  if (!shot) return [];
+  return Object.keys(shot.frameStore).map(Number).sort((a,b)=>a-b);
+}
+function jumpAnnotated(direction) {
+  const frames = getSortedAnnotatedFrames();
+  if (!frames.length) return;
+  const current = getCurrentFrameIndex();
+  if (direction > 0) {
+    for (let f of frames) {
+      if (f > current) { seekVideoToFrame(f); return; }
+    }
+    seekVideoToFrame(frames[0]);
+  } else {
+    for (let i=frames.length-1; i>=0; i--) {
+      if (frames[i] < current) { seekVideoToFrame(frames[i]); return; }
+    }
+    seekVideoToFrame(frames[frames.length-1]);
+  }
+}
+function seekVideoToFrame(frameIndex) {
+  return new Promise(resolve => {
+    const handler = () => { video.removeEventListener("seeked",handler); resolve(); };
+    video.addEventListener("seeked", handler);
+    video.currentTime = frameIndex / FPS;
+  });
+}
+
+/* ===== Drawing ===== */
+function getCanvasPos(e) {
+  const rect = displayCanvas.getBoundingClientRect();
+  return {
+    x:(e.clientX-rect.left)*(displayCanvas.width/rect.width),
+    y:(e.clientY-rect.top)*(displayCanvas.height/rect.height)
+  };
+}
+function setPenColor(c) { penColor.value = c; }
+
+displayCanvas.addEventListener("mousedown", e => {
+  if (!video.paused) return;
+  if (displayCanvas.style.pointerEvents === "none") return;
+  drawing = true;
+  const pos = getCanvasPos(e);
+  lastX = pos.x; lastY = pos.y;
+});
+displayCanvas.addEventListener("mousemove", e => {
+  if (!drawing) return;
+  const pos = getCanvasPos(e);
+  annCtx.strokeStyle = penColor.value;
+  annCtx.lineWidth = penSize.value;
+  annCtx.lineCap = "round";
+  annCtx.lineJoin = "round";
+  annCtx.beginPath();
+  annCtx.moveTo(lastX,lastY);
+  annCtx.lineTo(pos.x,pos.y);
+  annCtx.stroke();
+  lastX = pos.x; lastY = pos.y;
+  recomposite();
+});
+displayCanvas.addEventListener("mouseup", () => {
+  drawing=false;
+  const f = getCurrentFrameIndex();
+  saveAnnotationsForFrame(f);
+});
+displayCanvas.addEventListener("mouseleave", () => { drawing=false; });
+
+displayCanvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  if (!video.paused) return;
+  if (displayCanvas.style.pointerEvents === "none") return;
+  drawing = true;
+  const touch = e.touches[0];
+  const rect = displayCanvas.getBoundingClientRect();
+  lastX = (touch.clientX-rect.left)*(displayCanvas.width/rect.width);
+  lastY = (touch.clientY-rect.top)*(displayCanvas.height/rect.height);
+});
+displayCanvas.addEventListener("touchmove", e => {
+  e.preventDefault();
+  if (!drawing) return;
+  const touch = e.touches[0];
+  const rect = displayCanvas.getBoundingClientRect();
+  const x = (touch.clientX-rect.left)*(displayCanvas.width/rect.width);
+  const y = (touch.clientY-rect.top)*(displayCanvas.height/rect.height);
+  annCtx.strokeStyle = penColor.value;
+  annCtx.lineWidth = penSize.value;
+  annCtx.lineCap = "round";
+  annCtx.lineJoin = "round";
+  annCtx.beginPath();
+  annCtx.moveTo(lastX,lastY);
+  annCtx.lineTo(x,y);
+  annCtx.stroke();
+  lastX = x; lastY = y;
+  recomposite();
+});
+displayCanvas.addEventListener("touchend", e => {
+  e.preventDefault();
+  drawing=false;
+  const f = getCurrentFrameIndex();
+  saveAnnotationsForFrame(f);
+});
+
+penSize.addEventListener("input", () => {
+  pxLabel.textContent = `${penSize.value}px`;
+});
+colorRedBtn.addEventListener("click", () => setPenColor(COLOR_RED));
+colorYellowBtn.addEventListener("click", () => setPenColor(COLOR_YELLOW));
+colorBlueBtn.addEventListener("click", () => setPenColor(COLOR_BLUE));
+
+clearFrameBtn.addEventListener("click", () => {
+  const shot = getActiveShot();
+  if (!shot) return;
+  if (!confirm("Clear ALL annotations on the CURRENT frame?")) return;
+  const f = getCurrentFrameIndex();
+  delete shot.frameStore[f];
+  annCtx.clearRect(0,0,annCanvas.width,annCanvas.height);
+  recomposite();
+  refreshAnnotationHUD();
+  clearFrameFromCloud(shot, f);
+});
+clearAllFramesBtn.addEventListener("click", () => {
+  const shot = getActiveShot();
+  if (!shot) return;
+  if (!confirm("Clear ALL annotations on ALL frames for this shot?")) return;
+  shot.frameStore = {};
+  annCtx.clearRect(0,0,annCanvas.width,annCanvas.height);
+  recomposite();
+  refreshAnnotationHUD();
+  clearAllFramesFromCloud(shot);
+});
+
+/* ===== Wipe slider ===== */
+wipeSlider.addEventListener("input", () => {
+  wipeRatio = wipeSlider.value/100;
+  wipeLabel.textContent = `${wipeSlider.value}%`;
+  recomposite();
+});
+function recomposite() {
+  displayCtx.clearRect(0,0,displayCanvas.width,displayCanvas.height);
+  const w = displayCanvas.width;
+  const h = displayCanvas.height;
+  const clipW = w * wipeRatio;
+  displayCtx.save();
+  displayCtx.beginPath();
+  displayCtx.rect(0,0,clipW,h);
+  displayCtx.clip();
+  displayCtx.drawImage(annCanvas,0,0);
+  displayCtx.restore();
+  if (wipeRatio>0 && wipeRatio<1) {
+    displayCtx.strokeStyle = "rgba(255,255,255,0.7)";
+    displayCtx.lineWidth = 2;
+    displayCtx.beginPath();
+    displayCtx.moveTo(clipW,0);
+    displayCtx.lineTo(clipW,h);
+    displayCtx.stroke();
+  }
+}
+
+/* ===== Playback & timeline ===== */
+playBtn.addEventListener("click", () => video.play());
+pauseBtn.addEventListener("click", () => video.pause());
+prevFrameBtn.addEventListener("click", () => {
+  video.pause();
+  video.currentTime = Math.max(0, video.currentTime - 1/FPS);
+});
+nextFrameBtn.addEventListener("click", () => {
+  video.pause();
+  video.currentTime += 1/FPS;
+});
+fsBtn.addEventListener("click", () => {
+  if (!document.fullscreenElement) {
+    playerWrapper.requestFullscreen && playerWrapper.requestFullscreen();
+  } else {
+    document.exitFullscreen && document.exitFullscreen();
+  }
+});
+timelineSlider.addEventListener("input", () => {
+  if (!isFinite(video.duration) || video.duration<=0) return;
+  const ratio = timelineSlider.value / 1000;
+  video.currentTime = ratio * video.duration;
+});
+document.addEventListener("keydown", e => {
+  const tag = (document.activeElement && document.activeElement.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (video.paused) video.play(); else video.pause();
+    return;
+  }
+  if (e.key === "ArrowRight") {
+    video.pause();
+    video.currentTime += 1/FPS;
+    return;
+  }
+  if (e.key === "ArrowLeft") {
+    video.pause();
+    video.currentTime = Math.max(0, video.currentTime - 1/FPS);
+    return;
+  }
+  if (e.key === "1") { setPenColor(COLOR_RED); return; }
+  if (e.key === "2") { setPenColor(COLOR_YELLOW); return; }
+  if (e.key === "3") { setPenColor(COLOR_BLUE); return; }
+  if (e.key === "a" || e.key === "A" || e.key === "[") {
+    e.preventDefault(); jumpAnnotated(-1); return;
+  }
+  if (e.key === "d" || e.key === "D" || e.key === "]") {
+    e.preventDefault(); jumpAnnotated(1); return;
+  }
+});
+playlistBtn.addEventListener("click", () => {
+  playlistEnabled = !playlistEnabled;
+  playlistBtn.textContent = playlistEnabled ? "Playlist: On" : "Playlist: Off";
+});
+uploadBtn.addEventListener("click", () => {
+  if (!currentVendor || !currentVendor.uploadUrl) {
+    alert("No upload folder configured for this vendor.");
+    return;
+  }
+  window.open(currentVendor.uploadUrl, "_blank");
+});
+
+/* ===== Video events ===== */
+video.addEventListener("loadedmetadata", () => {
+  displayCanvas.width = video.videoWidth || 960;
+  displayCanvas.height = video.videoHeight || (960*9/16);
+  annCanvas.width = displayCanvas.width;
+  annCanvas.height = displayCanvas.height;
+  annCtx.clearRect(0,0,annCanvas.width,annCanvas.height);
+  displayCtx.clearRect(0,0,displayCanvas.width,displayCanvas.height);
+
+  const shot = getActiveShot();
+  if (shot) {
+    shot.duration = video.duration || null;
+    shot.lastFrameIndex = Math.round(video.currentTime * FPS);
+    loadAnnotationsForFrame(shot.lastFrameIndex);
+  }
+
+  updateHUD();
+  durTimeLabel.textContent = isFinite(video.duration)
+    ? formatTimecode(video.duration)
+    : "00:00:00:00";
+  refreshAnnotationHUD();
+});
+video.addEventListener("timeupdate", () => {
+  updateHUD();
+  if (isFinite(video.duration) && video.duration>0) {
+    const val = Math.round((video.currentTime / video.duration) * 1000);
+    timelineSlider.value = Math.min(1000, Math.max(0,val));
+  }
+});
+video.addEventListener("seeked", () => {
+  const shot = getActiveShot();
+  if (!shot) return;
+  const frame = Math.round(video.currentTime * FPS);
+  if (shot.lastFrameIndex != null && shot.lastFrameIndex !== frame) {
+    saveAnnotationsForFrame(shot.lastFrameIndex);
+  }
+  loadAnnotationsForFrame(frame);
+  shot.lastFrameIndex = frame;
+  updateHUD();
+});
+video.addEventListener("ended", () => {
+  if (!playlistEnabled) return;
+  if (activeShotIndex >= 0 && activeShotIndex < shots.length-1) {
+    switchShot(activeShotIndex+1, true);
+  }
+});
+
+/* ===== Export with watermark ===== */
+function drawWatermarkOnCtx(ctx, width, height) {
+  const text = (currentVendor && currentVendor.watermark)
+    ? currentVendor.watermark
+    : "AUREOLE VFX – CONFIDENTIAL";
+  ctx.save();
+  ctx.translate(width/2, height/2);
+  ctx.rotate(-Math.PI/6);
+  ctx.font = "36px system-ui,sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+
+saveCurrentBtn.addEventListener("click", async () => {
+  if (!displayCanvas.width || !displayCanvas.height) return;
+  const temp = document.createElement("canvas");
+  temp.width = displayCanvas.width;
+  temp.height = displayCanvas.height;
+  const ctx = temp.getContext("2d");
+  try { ctx.drawImage(video,0,0,temp.width,temp.height); } catch(e){}
+  ctx.drawImage(annCanvas,0,0);
+  drawWatermarkOnCtx(ctx, temp.width, temp.height);
+
+  const t = video.currentTime || 0;
+  const frame = getCurrentFrameIndex();
+  const tc = `TC: ${formatTimecode(t)} | Frame: ${frame}`;
+  ctx.font = "16px system-ui,sans-serif";
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.fillRect(10,temp.height-32,340,24);
+  ctx.fillStyle = "white";
+  ctx.fillText(tc,16,temp.height-15);
+
+  const id = shotIdInput.value.trim();
+  if (id) {
+    const pad = 8;
+    const maxW = temp.width*0.6;
+    ctx.font = "16px system-ui,sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(temp.width-(maxW+pad), temp.height-60, maxW, 28);
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.fillText(id, temp.width-pad, temp.height-18);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+  }
+
+  const shot = getActiveShot();
+  const base = shot ? shot.name : "shot";
+  const vendorTag = currentVendor && currentVendor.id ? `_${currentVendor.id}` : "";
+  const filename = `${base}${vendorTag}_f${frame}.png`;
+  await saveCanvasWithPicker(temp, filename);
+});
+
+saveAllBtn.addEventListener("click", async () => {
+  const shot = getActiveShot();
+  if (!shot) return;
+
+  const current = getCurrentFrameIndex();
+  saveAnnotationsForFrame(current);
+
+  const frames = getSortedAnnotatedFrames();
+  if (!frames.length) {
+    alert("No annotated frames for this shot.");
+    return;
+  }
+
+  const items = [];
+  for (const f of frames) {
+    await seekVideoToFrame(f);
+    const temp = document.createElement("canvas");
+    temp.width = displayCanvas.width;
+    temp.height = displayCanvas.height;
+    const ctx = temp.getContext("2d");
+    try { ctx.drawImage(video,0,0,temp.width,temp.height); } catch(e){}
+    const data = shot.frameStore[f];
+    if (data) {
+      const overlay = document.createElement("canvas");
+      overlay.width = data.width;
+      overlay.height = data.height;
+      overlay.getContext("2d").putImageData(data,0,0);
+      ctx.drawImage(overlay,0,0);
+    }
+    drawWatermarkOnCtx(ctx, temp.width, temp.height);
+
+    const sec = f / FPS;
+    const tc = `TC: ${formatTimecode(sec)} | Frame: ${f}`;
+    ctx.font = "14px system-ui,sans-serif";
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(10,temp.height-26,320,20);
+    ctx.fillStyle = "white";
+    ctx.fillText(tc,16,temp.height-10);
+
+    const id = shotIdInput.value.trim();
+    if (id) {
+      const pad = 8;
+      const maxW = temp.width*0.6;
+      ctx.font = "14px system-ui,sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(temp.width-(maxW+pad), temp.height-52, maxW, 24);
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText(id, temp.width-pad, temp.height-14);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    }
+
+    const base = shot.name || "shot";
+    const vendorTag = currentVendor && currentVendor.id ? `_${currentVendor.id}` : "";
+    const filename = `${base}${vendorTag}_f${f}.png`;
+    items.push({canvas:temp, filename});
+  }
+  await saveMultipleCanvasesToFolder(items);
+});
+
+shotIdInput.addEventListener("input", updateHUD);
+
+/* ===== Project / config load (with vendor auth) ===== */
+async function initFromConfig() {
+  const params = new URLSearchParams(window.location.search);
+  let project = params.get("project") || DEFAULT_PROJECT;
+  currentProjectName = project;
+
+  const configUrl = `projects/${project}/config.json`;
+  projectLabel.textContent = `Project: ${project} (loading…)`;
+
+  try {
+    const res = await fetch(configUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const cfg = await res.json();
+
+    if (cfg.password) {
+      let ok = false;
+      for (let i = 0; i < 3; i++) {
+        const entered = prompt(`Enter project password for "${project}":`);
+        if (entered === null) break;
+        if (entered === cfg.password) { ok = true; break; }
+        alert("Wrong password, please try again.");
+      }
+      if (!ok) {
+        projectLabel.textContent = `Access denied for project: ${project}`;
+        shotHud.textContent = "Access denied. Refresh page to try again.";
+        return;
+      }
+    }
+
+    currentVendor = null;
+    const vendorId = params.get("vendor");
+    const accessToken = params.get("access");
+
+    if (vendorId) {
+      if (!cfg.vendors || !cfg.vendors[vendorId]) {
+        projectLabel.textContent = `Unknown vendor "${vendorId}"`;
+        shotHud.textContent = "Access denied: vendor not configured.";
+        return;
+      }
+      const vCfg = cfg.vendors[vendorId];
+
+      if (vCfg.token && accessToken !== vCfg.token) {
+        projectLabel.textContent = `Access token invalid for vendor "${vendorId}"`;
+        shotHud.textContent = "Access denied: wrong or missing access code.";
+        return;
+      }
+
+      if (vCfg.password) {
+        let vok = false;
+        for (let i = 0; i < 3; i++) {
+          const entered = prompt(`Enter password for vendor "${vCfg.name || vendorId}":`);
+          if (entered === null) break;
+          if (entered === vCfg.password) { vok = true; break; }
+          alert("Wrong vendor password, please try again.");
+        }
+        if (!vok) {
+          projectLabel.textContent = `Vendor access denied for "${vendorId}"`;
+          shotHud.textContent = "Access denied. Refresh page to try again.";
+          return;
+        }
+      }
+
+      currentVendor = {
+        id: vendorId,            // e.g. vendor001 (V1 style)
+        name: vCfg.name || vendorId,
+        mode: vCfg.mode || "review",
+        watermark: vCfg.watermark || "",
+        uploadUrl: vCfg.uploadUrl || ""
+      };
+    }
+
+    const titleText = cfg.title || `Aureole Vendor Review – ${project}`;
+    document.title = titleText;
+    pageTitle.textContent = titleText;
+
+    const base = cfg.shotBasePath || "media/";
+    const cfgShots = Array.isArray(cfg.shots) ? cfg.shots : [];
+    shots = cfgShots.map(s => {
+      const file = s.file || "";
+      const url  = s.url || (base + file);
+      const name = s.name || file || "Shot";
+      return {
+        name,
+        fileName: file,
+        url,
+        frameStore: {},
+        lastFrameIndex: null,
+        duration: null,
+        cloudLoaded: false
+      };
+    });
+
+    setVendorUI(project);
+    updateShotBinUI();
+    updateShotTimelineUI();
+    refreshAnnotationHUD();
+
+    if (shots.length > 0) {
+      switchShot(0);
+    } else {
+      shotHud.textContent = "No shots in config.";
+    }
+
+  } catch (err) {
+    console.error("Failed to load project config:", err);
+    shotHud.textContent = `Config not found for project "${project}".`;
+    projectLabel.textContent = `Project: ${project} (ERROR loading config)`;
+  }
+}
+
+/* ===== Init ===== */
+window.addEventListener("DOMContentLoaded", () => {
+  initFromConfig();
+});
+</script>
+</body>
+</html>
